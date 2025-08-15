@@ -1,3 +1,34 @@
+// import express from 'express';
+// import cors from 'cors';
+// import 'dotenv/config';
+// import connectDB from './configs/db.js';
+// import {inngest, functions} from './inngest/index.js'
+// import { serve } from "inngest/express";
+// import { clerkMiddleware } from '@clerk/express'; 
+// import webhookRoutes from "./routes/webhookRoutes.js";
+
+// import userRouter from './routes/userRoutes.js';
+
+
+// const app = express();
+
+// await connectDB();
+
+// app.use(express.json());
+// app.use(cors());
+// app.use(clerkMiddleware());
+// app.use("/webhooks", webhookRoutes);
+
+
+
+// app.get('/', (req, res)=>res.send('server is running'))
+// app.use('/api/inngest',  serve({ client: inngest, functions }))
+// app.use('/api/user',clerkMiddleware(), userRouter)
+
+// const PORT = process.env.PORT || 4000;
+
+// app.listen(PORT, ()=> console.log(`server is running on port ${PORT}`))
+
 
 
 
@@ -5,19 +36,36 @@ import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
 import connectDB from './configs/db.js';
-import {inngest, functions} from './inngest/index.js'
-import { serve } from "inngest/express";
+import { inngest, functions } from './inngest/index.js';
+import { serve } from 'inngest/express';
+import { clerkMiddleware } from '@clerk/express';
+import clerkWebhookRoutes from './routes/clerkWebhookRoutes.js';
+import webhookRoutes from "./routes/webhookRoutes.js";
+import userRouter from './routes/userRoutes.js';
 
 const app = express();
 
+// Connect to MongoDB before starting the server
 await connectDB();
 
-app.use(express.json());
+// Middleware
 app.use(cors());
+app.use(express.json());
+app.use(clerkMiddleware()); // Clerk auth middleware globally (optional)
+app.use('/api/clerk-webhook', clerkWebhookRoutes);
 
-app.get('/', (req, res)=>res.send('server is running'))
-app.use('/api/inngest',  serve({ client: inngest, functions }))
+// Health check route
+app.get('/', (req, res) => res.send('✅ Server is running'));
+// Inngest Functions
+app.use('/api/inngest', serve({ client: inngest, functions }));
 
+// Clerk Webhooks
+app.use('/webhooks', webhookRoutes);
+
+
+// Protected API routes
+app.use('/api/user', userRouter);
+
+// Server listener
 const PORT = process.env.PORT || 4000;
-
-app.listen(PORT, ()=> console.log(`server is running on port ${PORT}`))
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
