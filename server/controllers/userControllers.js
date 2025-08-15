@@ -25,7 +25,7 @@ const uploadImage = async (file, width) => {
 // ✅ Get user data by Clerk userId
 export const getUserData = async (req, res) => {
     try {
-        const { userId } = req.auth; // Clerk's userId (string)
+        const { userId } = req.auth(); // Clerk's userId (string)
 
         const user = await User.findOne({ clerkId: userId }).lean();
         if (!user) {
@@ -42,7 +42,7 @@ export const getUserData = async (req, res) => {
 // ✅ Update user profile
 export const updateUserData = async (req, res) => {
     try {
-        const { userId } = req.auth;
+        const { userId } = req.auth();
         let { username, bio, location, full_name } = req.body;
 
         const currentUser = await User.findOne({ clerkId: userId });
@@ -91,7 +91,7 @@ export const updateUserData = async (req, res) => {
 // ✅ Search users
 export const discoverUsers = async (req, res) => {
     try {
-        const { userId } = req.auth;
+        const { userId } = req.auth();
         const { input } = req.body;
 
         const regex = new RegExp(input, "i");
@@ -115,7 +115,7 @@ export const discoverUsers = async (req, res) => {
 // ✅ Follow a user
 export const followUser = async (req, res) => {
     try {
-        const { userId } = req.auth;
+        const { userId } = req.auth();
         const { id } = req.body; // id = clerkId of user to follow
 
         if (userId === id) {
@@ -150,7 +150,7 @@ export const followUser = async (req, res) => {
 // ✅ Unfollow a user
 export const unfollowUser = async (req, res) => {
     try {
-        const { userId } = req.auth;
+        const { userId } = req.auth();
         const { id } = req.body; // id = clerkId of user to unfollow
 
         const [me, target] = await Promise.all([
