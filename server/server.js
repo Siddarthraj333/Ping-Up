@@ -36,12 +36,14 @@ import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
 import connectDB from './configs/db.js';
-import { inngest, functions } from './inngest/index.js';
-import { serve } from 'inngest/express';
-import { clerkMiddleware } from '@clerk/express';
-import clerkWebhookRoutes from './routes/clerkWebhookRoutes.js';
-import webhookRoutes from "./routes/webhookRoutes.js";
-import userRouter from './routes/userRoutes.js';
+import {inngest, functions} from './inngest/index.js'
+import {serve} from 'inngest/express'
+
+
+
+
+
+
 
 const app = express();
 
@@ -49,22 +51,18 @@ const app = express();
 await connectDB();
 
 // Middleware
-app.use(cors());
 app.use(express.json());
-app.use(clerkMiddleware()); // Clerk auth middleware globally (optional)
-app.use('/api/clerk-webhook', clerkWebhookRoutes);
+app.use(cors());
+
 
 // Health check route
 app.get('/', (req, res) => res.send('✅ Server is running'));
 // Inngest Functions
 app.use('/api/inngest', serve({ client: inngest, functions }));
 
-// Clerk Webhooks
-app.use('/webhooks', webhookRoutes);
 
 
-// Protected API routes
-app.use('/api/user', userRouter);
+
 
 // Server listener
 const PORT = process.env.PORT || 4000;
