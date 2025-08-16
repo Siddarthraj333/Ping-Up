@@ -29,7 +29,7 @@ export const updateUserData = async (req, res) =>{
         !username && (username = tempUser.username)
 
         if(tempUser.username !== username){
-            const user = User.findOne({username})
+            const user = await User.findOne({username})
             if(user){
                 // we will not change the username if it is alreday taken
                 username = tempUser.username
@@ -159,11 +159,11 @@ export const unfollowUser = async (req, res) =>{
 
         const user = await User.findById(userId)
 
-      user.following = user.following.filter(user=> user !== id);
+     user.following = user.following.filter(f => f !== id);
        await user.save()
 
        const toUser = await User.findById(id)
-       toUser.followers = toUser.followers.filter(user=> user !== userId);
+      toUser.followers = toUser.followers.filter(f => f !== userId);
        await toUser.save()     
 
     res.json({success: true, message: 'You are no longer following this user'})
