@@ -2,8 +2,8 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    _id: { type: String, required: true },
-    _email: { type: String, required: true }, // required email field
+    id: { type: String, required: true },
+    email: { type: String, required: true }, // required email field
     full_name: { type: String, required: true },
     username: { type: String, unique: true },
     bio: { type: String, default: "Hey there! I am using PingUp." },
