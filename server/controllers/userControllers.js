@@ -109,7 +109,7 @@ export const discoverUsers = async (req, res) =>{
             }
         )
               
-         const filteredUsers = allUsers.filter(user=> user.id !== userId);
+         const filteredUsers = allUsers.filter(user=> user._id !== userId);
          res.json({success: true, users: filteredUsers})
 
     } catch (error) {
@@ -159,7 +159,7 @@ export const unfollowUser = async (req, res) =>{
 
         const user = await User.findById(userId)
 
-      user.following = user.following.filter(user=> user !== _id);
+      user.following = user.following.filter(user=> user !== id);
        await user.save()
 
        const toUser = await User.findById(id)
