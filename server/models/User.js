@@ -2,70 +2,19 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
   {
-    clerkId: { 
-      type: String, 
-      required: true, 
-      unique: true 
-    }, // Clerk user ID
-
-    email: { 
-      type: String, 
-      required: true, 
-      unique: true 
-    },
-
-    full_name: { 
-      type: String, 
-      required: true 
-    },
-
-    username: { 
-      type: String, 
-      required: true, 
-      unique: true 
-    },
-
-    bio: { 
-      type: String, 
-      default: "Hey there! I am using PingUp." 
-    },
-
-    profile_picture: { 
-      type: String, 
-      default: "" 
-    },
-
-    cover_photo: { 
-      type: String, 
-      default: "" 
-    },
-
-    location: { 
-      type: String, 
-      default: "" 
-    },
-
-    followers: [{ 
-      type: String, // storing clerkId references
-      ref: "User" 
-    }],
-
-    following: [{ 
-      type: String, 
-      ref: "User" 
-    }],
-
-    connections: [{ 
-      type: String, 
-      ref: "User" 
-    }],
+    clerkId: { type: String, required: true, unique: true }, // Clerk userId
+    email: { type: String, required: true },
+    username: { type: String, unique: true },
+    full_name: { type: String },
+    bio: { type: String },
+    location: { type: String },
+    profile_picture: { type: String },
+    cover_photo: { type: String },
+    followers: { type: [String], default: [] },  // list of clerkIds
+    following: { type: [String], default: [] },  // list of clerkIds
   },
-  { 
-    timestamps: true, 
-    minimize: false 
-  }
+  { timestamps: true }
 );
 
-const User = mongoose.model("User", userSchema);
-export default User;
+export default mongoose.model("User", userSchema);
 

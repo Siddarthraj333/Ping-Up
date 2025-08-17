@@ -168,3 +168,29 @@ export const unfollowUser = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
+
+// ✅ Sync Clerk user to MongoDB
+export const syncUser = async (req, res) => {
+  try {
+    const { userId } = req.auth(); // Clerk userId
+    const { email, full_name, username } = req.body;
+
+    // find if user already exists
+    let user = await User.findOne({ clerkId: userId });
+
+    if (!user) {
+      user = await User.create({
+        clerkId: userId,
+        email,
+        username,
+        full_name,
+      });
+    }
+
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
