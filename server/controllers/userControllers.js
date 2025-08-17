@@ -2,79 +2,52 @@ import imagekit from "../configs/imageKit.js";
 import User from "../models/User.js";
 import fs from "fs";
 
-// ✅ Get user data using Clerk ID
+// ✅ Get user data
 export const getUserData = async (req, res) => {
   try {
-    const { userId } = req.auth(); // Clerk userId
+    const { userId } = req.auth();
     const user = await User.findOne({ clerkId: userId });
 
     if (!user) {
-      return res.json({ success: false, message: "User not found" });
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    res.json({ success: true, user });
+    res.json(user); // return same object as in DB
   } catch (error) {
-    console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ✅ Update user data
+// ✅ Update user
 export const updateUserData = async (req, res) => {
   try {
     const { userId } = req.auth();
-    let { username, bio, location, full_name } = req.body;
+    const { username, bio, location, full_name } = req.body;
 
-    const tempUser = await User.findOne({ clerkId: userId });
-    if (!tempUser) {
-      return res.json({ success: false, message: "User not found" });
-    }
+    let updatedData = { username, bio, location, full_name };
 
-    // ✅ handle username (prevent duplicates)
-    if (!username) username = tempUser.username;
-    username = username.trim();
-
-    if (tempUser.username !== username) {
-      const existing = await User.findOne({ username });
-      if (existing) {
-        username = tempUser.username; // revert to old username if taken
-      }
-    }
-
-    const updatedData = { username, bio, location, full_name };
-
-    // ✅ Profile picture upload
+    // profile picture
     const profile = req.files?.profile?.[0];
     if (profile) {
       const buffer = fs.readFileSync(profile.path);
-      const response = await imagekit.upload({
+      const uploaded = await imagekit.upload({
         file: buffer,
         fileName: profile.originalname,
       });
-
-      updatedData.profile_picture = imagekit.url({
-        path: response.filePath,
-        transformation: [{ quality: "auto" }, { format: "webp" }, { width: "512" }],
-      });
-
-      fs.unlinkSync(profile.path); // cleanup temp file
+      updatedData.profile_picture = uploaded.url;
+      fs.unlinkSync(profile.path);
     }
 
-    // ✅ Cover photo upload
+    // cover photo
     const cover = req.files?.cover?.[0];
     if (cover) {
       const buffer = fs.readFileSync(cover.path);
-      const response = await imagekit.upload({
+      const uploaded = await imagekit.upload({
         file: buffer,
         fileName: cover.originalname,
       });
-
-      updatedData.cover_photo = imagekit.url({
-        path: response.filePath,
-        transformation: [{ quality: "auto" }, { format: "webp" }, { width: "1280" }],
-      });
-
-      fs.unlinkSync(cover.path); // cleanup temp file
+      updatedData.cover_photo = uploaded.url;
+      fs.unlinkSync(cover.path);
     }
 
     const user = await User.findOneAndUpdate(
@@ -83,64 +56,56 @@ export const updateUserData = async (req, res) => {
       { new: true }
     );
 
-    res.json({ success: true, user, message: "Profile updated successfully" });
+    res.json(user);
   } catch (error) {
-    console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ✅ Discover users by username/email/full_name/location
+// ✅ Discover users
 export const discoverUsers = async (req, res) => {
   try {
-    const { userId } = req.auth();
     const { input } = req.body;
+    const { userId } = req.auth();
 
-    const allUsers = await User.find({
+    const users = await User.find({
       $or: [
         { username: new RegExp(input, "i") },
         { email: new RegExp(input, "i") },
         { full_name: new RegExp(input, "i") },
         { location: new RegExp(input, "i") },
       ],
+      clerkId: { $ne: userId }, // exclude current user
     }).limit(20);
 
-    // ✅ Exclude current user
-    const filteredUsers = allUsers.filter((u) => u.clerkId !== userId);
-
-    res.json({ success: true, users: filteredUsers });
+    res.json(users);
   } catch (error) {
-    console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 // ✅ Follow user
 export const followUser = async (req, res) => {
   try {
-    const { userId } = req.auth(); // current user clerkId
-    const { id } = req.body; // target clerkId
+    const { userId } = req.auth();
+    const { id } = req.body;
 
     const user = await User.findOne({ clerkId: userId });
-    if (!user) return res.json({ success: false, message: "User not found" });
-
-    if (user.following.includes(id)) {
-      return res.json({ success: false, message: "Already following this user" });
-    }
-
-    user.following.push(id);
-    await user.save();
-
     const toUser = await User.findOne({ clerkId: id });
-    if (toUser && !toUser.followers.includes(userId)) {
-      toUser.followers.push(userId);
-      await toUser.save();
+
+    if (!user || !toUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    res.json({ success: true, message: "Now following user" });
+    if (!user.following.includes(id)) user.following.push(id);
+    if (!toUser.followers.includes(userId)) toUser.followers.push(userId);
+
+    await user.save();
+    await toUser.save();
+
+    res.json({ success: true, message: "Now following", user });
   } catch (error) {
-    console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -151,31 +116,30 @@ export const unfollowUser = async (req, res) => {
     const { id } = req.body;
 
     const user = await User.findOne({ clerkId: userId });
-    if (!user) return res.json({ success: false, message: "User not found" });
-
-    user.following = user.following.filter((f) => f !== id);
-    await user.save();
-
     const toUser = await User.findOne({ clerkId: id });
-    if (toUser) {
-      toUser.followers = toUser.followers.filter((f) => f !== userId);
-      await toUser.save();
+
+    if (!user || !toUser) {
+      return res.status(404).json({ success: false, message: "User not found" });
     }
 
-    res.json({ success: true, message: "Unfollowed successfully" });
+    user.following = user.following.filter(f => f !== id);
+    toUser.followers = toUser.followers.filter(f => f !== userId);
+
+    await user.save();
+    await toUser.save();
+
+    res.json({ success: true, message: "Unfollowed", user });
   } catch (error) {
-    console.error(error);
-    res.json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ✅ Sync Clerk user to MongoDB
+// ✅ Sync Clerk user
 export const syncUser = async (req, res) => {
   try {
-    const { userId } = req.auth(); // Clerk userId
+    const { userId } = req.auth();
     const { email, full_name, username } = req.body;
 
-    // find if user already exists
     let user = await User.findOne({ clerkId: userId });
 
     if (!user) {
@@ -187,9 +151,8 @@ export const syncUser = async (req, res) => {
       });
     }
 
-    res.json({ success: true, user });
+    res.json(user);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
