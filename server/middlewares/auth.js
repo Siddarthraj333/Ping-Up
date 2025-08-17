@@ -1,11 +1,16 @@
+import { getAuth } from "@clerk/express"; // or @clerk/clerk-sdk-node (depends on your setup)
+
 export const protect = async (req, res, next) => {
-    try{
-        const {userId} = await req.auth();
-        if (!userId){
-            return res.json({success: false, message: "not authenticated"})
-        }
-        next()
-    }catch(error){
-              res.json({success: false, message: error.message})
+  try {
+    const { userId } = getAuth(req); // Clerk gives you userId
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: "Not authenticated" });
     }
-}
+
+    req.user = { _id: userId }; // attach user to request
+    next();
+  } catch (error) {
+    res.status(401).json({ success: false, message: error.message });
+  }
+};

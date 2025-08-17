@@ -4,35 +4,31 @@ import {
   followUser, 
   getUserData, 
   unfollowUser, 
-  updateUserData, 
-  syncUser 
+  updateUserData
 } from '../controllers/userControllers.js';
 import { protect } from '../middlewares/auth.js';
 import { upload } from '../configs/multer.js';
 
 const userRouter = express.Router();
 
-// ✅ Sync Clerk user to MongoDB
-userRouter.post('/sync', protect, syncUser);
-
-// ✅ Get user data
+// ✅ Get logged-in user data (auto-create if missing)
 userRouter.get('/data', protect, getUserData);
 
-// ✅ Update user data (with file upload)
+// ✅ Update user data (with profile & cover uploads)
 userRouter.post(
   '/update',
+  protect,
   upload.fields([
     { name: 'profile', maxCount: 1 },
     { name: 'cover', maxCount: 1 }
   ]),
-  protect,
   updateUserData
 );
 
 // ✅ Discover users
-userRouter.post('/discover', protect, discoverUsers);
+userRouter.get('/discover', protect, discoverUsers);
 
-// ✅ Follow/unfollow
+// ✅ Follow / Unfollow
 userRouter.post('/follow', protect, followUser);
 userRouter.post('/unfollow', protect, unfollowUser);
 

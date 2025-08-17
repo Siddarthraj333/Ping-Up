@@ -2,17 +2,34 @@ import imagekit from "../configs/imageKit.js";
 import User from "../models/User.js";
 import fs from "fs";
 
-// ✅ Get user data
+// ✅ Get current user (by Clerk ID as _id)
 export const getUserData = async (req, res) => {
   try {
-    const { userId } = req.auth();
+    const { userId, sessionClaims } = req.auth(); 
+
     const user = await User.findOne({ clerkId: userId });
 
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      // Extract details from Clerk claims
+      const email = sessionClaims?.email || "";
+      const full_name = sessionClaims?.full_name || "";
+      const username = sessionClaims?.username || email?.split("@")[0];
+
+      user = await User.create({
+        _id: userId, 
+        email,            // ✅ FIX: use "email" instead of "_email"
+        username,
+        full_name,        // ✅ FIX: matches schema
+        bio: "",
+        location: "",
+        profile_picture: "",
+        cover_photo: "",
+        followers: [],
+        following: [],
+      });
     }
 
-    res.json(user); // return same object as in DB
+    res.json({ success: true, data: user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -21,7 +38,7 @@ export const getUserData = async (req, res) => {
 // ✅ Update user
 export const updateUserData = async (req, res) => {
   try {
-    const { userId } = req.auth();
+    const { userId } = req.auth(); 
     const { username, bio, location, full_name } = req.body;
 
     let updatedData = { username, bio, location, full_name };
@@ -50,13 +67,12 @@ export const updateUserData = async (req, res) => {
       fs.unlinkSync(cover.path);
     }
 
-    const user = await User.findOneAndUpdate(
-      { clerkId: userId },
-      updatedData,
-      { new: true }
-    );
+    const user = await User.findByIdAndUpdate(userId, updatedData, {
+      new: true,
+      upsert: true,
+    });
 
-    res.json(user);
+    res.json({ success: true, data: user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -75,10 +91,10 @@ export const discoverUsers = async (req, res) => {
         { full_name: new RegExp(input, "i") },
         { location: new RegExp(input, "i") },
       ],
-      clerkId: { $ne: userId }, // exclude current user
+      _id: { $ne: userId },
     }).limit(20);
 
-    res.json(users);
+    res.json({ success: true, data: users });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -87,11 +103,11 @@ export const discoverUsers = async (req, res) => {
 // ✅ Follow user
 export const followUser = async (req, res) => {
   try {
-    const { userId } = req.auth();
+    const { userId } = req.auth(); 
     const { id } = req.body;
 
-    const user = await User.findOne({ clerkId: userId });
-    const toUser = await User.findOne({ clerkId: id });
+    const user = await User.findById(userId);
+    const toUser = await User.findById(id);
 
     if (!user || !toUser) {
       return res.status(404).json({ success: false, message: "User not found" });
@@ -103,7 +119,7 @@ export const followUser = async (req, res) => {
     await user.save();
     await toUser.save();
 
-    res.json({ success: true, message: "Now following", user });
+    res.json({ success: true, message: "Now following", data: user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -112,11 +128,11 @@ export const followUser = async (req, res) => {
 // ✅ Unfollow user
 export const unfollowUser = async (req, res) => {
   try {
-    const { userId } = req.auth();
+    const { userId } = req.auth(); 
     const { id } = req.body;
 
-    const user = await User.findOne({ clerkId: userId });
-    const toUser = await User.findOne({ clerkId: id });
+    const user = await User.findById(userId);
+    const toUser = await User.findById(id);
 
     if (!user || !toUser) {
       return res.status(404).json({ success: false, message: "User not found" });
@@ -128,7 +144,7 @@ export const unfollowUser = async (req, res) => {
     await user.save();
     await toUser.save();
 
-    res.json({ success: true, message: "Unfollowed", user });
+    res.json({ success: true, message: "Unfollowed", data: user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -137,23 +153,24 @@ export const unfollowUser = async (req, res) => {
 // ✅ Sync Clerk user
 export const syncUser = async (req, res) => {
   try {
-    const { userId } = req.auth();
-    const { email, full_name, username } = req.body;
+    const { userId, sessionClaims } = req.auth(); 
+    const email = sessionClaims?.email || "";
+    const full_name = sessionClaims?.full_name || "";
+    const username = sessionClaims?.username || email?.split("@")[0];
 
-    let user = await User.findOne({ clerkId: userId });
+    let user = await User.findById(userId);
 
     if (!user) {
       user = await User.create({
-        clerkId: userId,
-        email,
-        username,
-        full_name,
+        _id: userId,
+        email,           // ✅ FIXED
+        username,        // ✅ FIXED
+        full_name,       // ✅ FIXED
       });
     }
 
-    res.json(user);
+    res.json({ success: true, data: user });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-
