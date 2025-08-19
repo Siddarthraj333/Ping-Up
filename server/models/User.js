@@ -1,72 +1,19 @@
 import mongoose from "mongoose";
 
-const userSchema = new mongoose.Schema(
-  {
-    clerkId: {
-      type: String,
-      required: true,
-      unique: true, // Always link 1:1 with Clerk
-    },
-    email: {
-      type: String,
-      required: true,
-      lowercase: true,
-      trim: true,
-    },
-    username: {
-      type: String,
-      required: true,
-      unique: true, // Must be unique in DB
-      trim: true,
-    },
-    full_name: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    profile_picture: {
-      type: String, // URL (Clerk or custom uploaded)
-      default: null,
-    },
-    bio: {
-      type: String,
-      default: "",
-      maxlength: 250,
-    },
-    location: {
-      type: String,
-      default: "",
-      maxlength: 100,
-    },
-    followers: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
-    following: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-    ],
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
-    updatedAt: {
-      type: Date,
-      default: Date.now,
-    },
-  },
-  {
-    timestamps: true, // ✅ Auto-manages createdAt + updatedAt
-  }
-);
+const userSchema = new mongoose.Schema({
+    _id: {type: String, required: true},
+    email: {type: String, required: true},
+    full_name: {type: String, required: true},
+    username: {type: String, unique: true},
+    bio: {type: String, default: 'Hey there! I am using PingUp'},
+    profile_picture: {type: String, default: ''},
+    cover_photo: {type: String, default: ''},
+    location: {type: String, default: ''},
+    followers: [{type: String, ref: 'User' }],
+    following: [{type: String, ref: 'User' }],
+    connections: [{type: String, ref: 'User' }],
+},{timestamps: true, minimize: false})
 
-// Index for fast username/email lookups
-userSchema.index({ username: 1, email: 1 });
+const User = mongoose.model('User', userSchema)
 
-const User = mongoose.model("User", userSchema);
-
-export default User;
+export default User
