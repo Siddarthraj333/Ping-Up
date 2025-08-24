@@ -33,7 +33,7 @@ export const sseController = (req, res)=>{
 }
 
 // send message 
-export const sendMessage = async (res, res) => {
+export const sendMessage = async (req, res) => {
     try {
         const { userId } = req.auth();
         const { to_user_id, text } = req.body;
